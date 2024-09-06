@@ -2,14 +2,39 @@
 
 thisfile=$( readlink "${BASH_SOURCE[0]}" ) || thisfile="${BASH_SOURCE[0]}"
 basedir="$( cd "$( dirname "$thisfile" )/../" && pwd -P )"
-#SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+function parse_yaml {
+   echo "Reading from local.yml..."
+   local prefix=$2
+   local s='[[:space:]]*' w='[a-zA-Z0-9_]*' fs=$(echo @|tr @ '\034')
+   sed -ne "s|^\($s\):|\1|" \
+        -e "s|^\($s\)\($w\)$s:$s[\"']\(.*\)[\"']$s\$|\1$fs\2$fs\3|p" \
+        -e "s|^\($s\)\($w\)$s:$s\(.*\)$s\$|\1$fs\2$fs\3|p"  $1 |
+   awk -F$fs '{
+      indent = length($1)/2;
+      vname[indent] = $2;
+      for (i in vname) {if (i > indent) {delete vname[i]}}
+      if (length($3) > 0) {
+         vn=""; for (i=0; i<indent; i++) {vn=(vn)(vname[i])("_")}
+         printf("%s%s%s=\"%s\"\n", "'$prefix'",vn, $2, $3);
+         ## TODO: BUILD ARRAY WITH LOCAL CONFIGS
+      }
+   }'
+}
+
+
+configs="${basedir}/assets/local.yml"
+parse_yaml $configs
+
+## TODO: USE LOCAL.YML ARRAY TO CHANGE BUILD CONFIGURATION 
+
+echo
+echo "== K1Run =="
+echo
 
 SWITCH1=$1
 SWITCH2=$2
 SWITCH3=$3
-
-echo "== K1Run =="
-echo
 
 # make sure that env MOODLE_DOCKER_WWWROOT is set.
 if [[ -z "${MOODLE_DOCKER_WWWROOT}" ]]; then
@@ -43,26 +68,26 @@ fi
 
 # Help
 if [ "$SWITCH1" = "--help" ]; then
-    echo "Usage: sh run.sh --[command] [argument1] [argument2]"
-    echo "Script that automates managing docker. See: https://jira.knowledgeone.ca:9443/x/3wCnCQ"
+    echo "Usage: k1run.sh --[command] [argument1] [argument2]"
+    echo "Script that automates managing docker-moodle. See: https://jira.knowledgeone.ca:9443/x/3wCnCQ"
     echo "Command --root must be run first to set the Moodle path."
     echo
-    echo "If no parameter is passed then boot and initialize the site."
+    echo "If no parameter is passed then boot the site."
     echo
-    echo "--start    Boot and initialize the site. (default)"
+    echo "--start    Boot the site. (default)"
     echo "--root     Pass absolute path to MOODLE_DOCKER_WWWROOT to set ENV variable."
     echo "--build    Start the site and initialize the site."
     echo "--initdb     Drop and re-initialize the Moodle database, with new credential."
     echo "             With two arguments: [email] [password]"
     echo "             With no arguments: admin@example.com m@0dl3ing (defaults)"
-    echo "--reload   Reload the site, use existing data"
-    echo "--down     Stop the site. Keep data"
-    echo "--destroy  Stop the site, destory data"
-    echo "--reboot   Restart the site - destroy all containers and re-initialize"
+    echo "--reload   Reload the site (all images), using existing data."
+    echo "--down     Stop the site. Keep data."
+    echo "--destroy  Stop the site & DESTROY data."
+    echo "--reboot   Restart the site - destroy all containers and re-initialize."
     echo "--php      Reload php config in assets/php/10-docker-php-moodle.ini"
-    echo "--phpunit  Initialize for phpunit tests"
-    echo "--behat    Initialize for behat tests"
-    echo "--help     Print this message"
+    echo "--phpunit  Initialize for phpunit tests."
+    echo "--behat    Initialize for behat tests."
+    echo "--help     Print this message."
 
 # Root
 elif [ "$SWITCH1" = "--root" ]; then 
@@ -151,5 +176,4 @@ elif [ "$SWITCH1" = "--behat" ]; then
    bin/moodle-docker-compose exec webserver php admin/tool/behat/cli/init.php
 
 fi
-
 exit 1
