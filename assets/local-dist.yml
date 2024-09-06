@@ -1,0 +1,9 @@
+# Instructions: copy this file assets/local-dist.yml to assets/local.yml
+# Uncomment configs that you want to use in building container 
+# This file should be added to .gitignore 
+#MOODLE_DOCKER_WWWROOT: "/var/www/html"
+#MOODLE_DOCKER_PHP_VERSION: 8.1
+#MOODLE_DOCKER_APP_PORT: 80 
+#MOODLE_DOCKER_DB_VERSION: 8.0
+#MOODLE_DOCKER_DB_PORT: 3306
+#MOODLE_DOCKER_APP_RUNTIME: "ionic5"
