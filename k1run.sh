@@ -43,6 +43,7 @@ if [ $# -eq 0 ];  then
     help_messages
     return
 fi
+
 #Count the variables passed in.
 variablecount=$#
 if [ $# -lt 2 ] || [ $# -gt 3 ] ;  then
@@ -94,7 +95,11 @@ fi
 
 export MOODLE_DOCKER_DB=mariadb
 export MOODLE_DOCKER_WWWROOT=${folder}
-#export MOODLE_DOCKER_PHP_VERSION=8.3
+# Check the Moodle version. If its 4.5 then set php version to 8.3
+moodlever=$(grep "4.5" $folder/version.php)
+if [ "$moodlever" ]; then
+   export MOODLE_DOCKER_PHP_VERSION=8.3
+fi
 
 # Use the local.yml_single for one site - includes adminer..
 cp local.yml_single local.yml
