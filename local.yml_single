@@ -3,6 +3,8 @@ services:
   webserver:
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    volumes:
+       - "${ASSETDIR}/php/10-docker-php-moodle.ini:/usr/local/etc/php/conf.d/10-docker-php-moodle.ini" 
     environment:
       XDEBUG_MODE: debug,develop
       XDEBUG_CONFIG:
