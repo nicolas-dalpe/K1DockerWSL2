@@ -9,7 +9,7 @@ help_messages () {
     echo "--help        display this message"
     echo "{folder1}     -folder pointing to first Moodle site (Mandatory)"
     echo "{folder2}     -folder pointing to second Moodle site (optional)"
-    echo "{folder2}     -folder pointing to third Moodle site (optional)"
+    echo "{folder3}     -folder pointing to third Moodle site (optional)"
 
 }
 
