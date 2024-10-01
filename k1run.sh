@@ -66,8 +66,9 @@ SWITCH=$2
 SWITCH2=$3
 
 # Variables
-# MOODLE_DOCKER_DB - database used by Moodle - default maria db
+# MOODLE_DOCKER_DB - database used by Moodle - default maria db.
 # MOODLE_DOCKER_WWWROOT - folder where the Moodle code is located;
+# MOODLE_DOCKER_PHP_VERSION - version of PHP used by Moodle. Default 8.1.
 
 if [ "$SWITCH" = "--help" ]; then
     help_messages
@@ -83,7 +84,7 @@ if  exists_in_list "$list_of_options" " " $SWITCH;  then
     return
 fi
 
-if [ "$variablecount" -eq 3 ]; then 
+if [ "$variablecount" -eq 3 ]; then
     if  exists_in_list "$list_of_options" " " $SWITCH2;  then
         echo "Invalid option $SWITCH2"
         help_messages
@@ -95,13 +96,14 @@ fi
 
 export MOODLE_DOCKER_DB=mariadb
 export MOODLE_DOCKER_WWWROOT=${folder}
+
 # Check the Moodle version. If its 4.5 then set php version to 8.3
-moodlever=$(grep "4.5" $folder/version.php)
+moodlever=$(grep "$branch   = '405';" $folder/version.php)
 if [ "$moodlever" ]; then
    export MOODLE_DOCKER_PHP_VERSION=8.3
 fi
 
-# Use the local.yml_single for one site - includes adminer..
+# Use the local.yml_single for one site - includes adminer.
 cp local.yml_single local.yml
 cp config.docker-template.php $MOODLE_DOCKER_WWWROOT/config.php
 
@@ -109,19 +111,19 @@ cp config.docker-template.php $MOODLE_DOCKER_WWWROOT/config.php
 if [ "$SWITCH" = "--build" ]; then
     # Start up containers
     bin/moodle-docker-compose up -d
-    # Wait for DB to come up 
+    # Wait for DB to come up
     bin/moodle-docker-wait-for-db
-    # Initialize the database    
+    # Initialize the database
     bin/moodle-docker-compose exec webserver php admin/cli/install_database.php --agree-license --fullname="K1MOODLE" --shortname="K1MOODLE" --summary="K1 Moodle dev" --adminpass="test" --adminemail="admin@example.com"
     if [ "$SWITCH2" = "--phpunit" ]; then
        # Add in unit tests initialization.
        bin/moodle-docker-compose exec webserver php admin/tool/phpunit/cli/init.php
-    fi    
+    fi
     if [ "$SWITCH2" = "--behat" ]; then
        # Add in unit tests initialization.
        bin/moodle-docker-compose exec webserver php admin/tool/behat/init.php
     fi
-    adminer_plugins   
+    adminer_plugins
 fi
 
 # DESTROY
@@ -133,20 +135,19 @@ fi
 if [ "$SWITCH" = "--phpunit" ]; then
    # Start up containers
    bin/moodle-docker-compose up -d
-   # Wait for DB to come up 
+   # Wait for DB to come up
    bin/moodle-docker-wait-for-db
    bin/moodle-docker-compose exec webserver php admin/tool/phpunit/cli/init.php
-   adminer_plugins    
+   adminer_plugins
 fi
 
-# PNPUNIT ONLY
+# BEHAT ONLY
 if [ "$SWITCH" = "--behat" ]; then
    # Start up containers
    bin/moodle-docker-compose up -d
-   # Wait for DB to come up 
+   # Wait for DB to come up
    bin/moodle-docker-wait-for-db
    bin/moodle-docker-compose exec webserver php admin/tool/behat/cli/init.php
- 
 fi
 
 # REBOOT
@@ -159,30 +160,17 @@ if [ "$SWITCH" = "--reboot" ]; then
     bin/moodle-docker-compose exec webserver php admin/cli/install_database.php --agree-license --fullname="K1MOODLE" --shortname="K1MOODLE" --summary="K1 Moodle dev" --adminpass="test" --adminemail="admin@example.com"
 fi
 
-# PHPUNIT
-if [ "$SWITCH" = "--phpunit" ]; then
-    # Add in unit tests initialization.
-    bin/moodle-docker-compose exec webserver php admin/tool/phpunit/cli/init.php
-    adminer_plugins   
-fi
-
-# BEHAT
-if [ "$SWITCH" = "--behat" ]; then
-    # Add in unit tests initialization.
-    bin/moodle-docker-compose exec webserver php admin/tool/behat/init.php
-fi
-
 # DOWN
 if [ "$SWITCH" = "--down" ]; then
-    # Stop the containers 
+    # Stop the containers
     bin/moodle-docker-compose stop
 fi
 
 # DOWN
 if [ "$SWITCH" = "--load" ]; then
-    # Start the containers 
+    # Start the containers
     bin/moodle-docker-compose start
-    adminer_plugins   
+    adminer_plugins
 fi
 
 return
