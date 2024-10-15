@@ -46,8 +46,8 @@ fi
 
 #Count the variables passed in.
 variablecount=$#
-if [ $# -lt 2 ] || [ $# -gt 3 ] ;  then
-    echo "Invalid number of arguments passed in. Must be between 2 and 3 arguments"
+if [ $# -lt 1 ] || [ $# -gt 3 ] ;  then
+    echo "Invalid number of arguments passed in. Must be between 1 and 3 arguments"
     help_messages
     return
 fi
@@ -74,7 +74,10 @@ if [ "$SWITCH" = "--help" ]; then
     help_messages
 fi
 
-# Check to see if the options are valied.
+# if no variable passed in then build the site.
+if [ -z "$SWITCH" ]; then
+   SWITCH='--build'
+fi
 
 list_of_options="--build --down --destroy --reboot --load --phpunit --behat"
 
@@ -109,6 +112,11 @@ cp config.docker-template.php $MOODLE_DOCKER_WWWROOT/config.php
 
 # Build
 if [ "$SWITCH" = "--build" ]; then
+    # Check to see if the docker containers are running.
+    if [ -n "$(docker ps -f "name=docker-webserver-1" -f "status=running" -q )" ]; then
+       echo "The Webserver is already running!. It cannot be re-initialized."
+       return;
+    fi
     # Start up containers
     bin/moodle-docker-compose up -d
     # Wait for DB to come up
@@ -128,6 +136,10 @@ fi
 
 # DESTROY
 if [ "$SWITCH" = "--destroy" ]; then
+    if ! docker ps | grep -q 'moodlehq'; then
+        echo "No containers running. Nothing to shutdown"
+        exit 1
+    fi
     bin/moodle-docker-compose down
 fi
 
@@ -153,20 +165,28 @@ fi
 # REBOOT
 if [ "$SWITCH" = "--reboot" ]; then
     # Stop the containers
-    bin/moodle-docker-compose down
+    if ! docker ps | grep -q 'moodlehq'; then
+        echo "No containers running. Nothing to reboot"
+        exit 1
+    fi
+    bin/moodle-docker-compose stop
     sleep 3
-    # Start up containers
-    bin/moodle-docker-compose up -d
-    bin/moodle-docker-compose exec webserver php admin/cli/install_database.php --agree-license --fullname="K1MOODLE" --shortname="K1MOODLE" --summary="K1 Moodle dev" --adminpass="test" --adminemail="admin@example.com"
+    # Re-start up containers
+    bin/moodle-docker-compose start
 fi
 
 # DOWN
 if [ "$SWITCH" = "--down" ]; then
+    # Check to see if containers are running.
+    if ! docker ps | grep -q 'moodlehq'; then
+        echo "No containers running. Nothing to shutdown"
+        exit 1
+    fi
     # Stop the containers
     bin/moodle-docker-compose stop
 fi
 
-# DOWN
+# LOAD existing data.
 if [ "$SWITCH" = "--load" ]; then
     # Start the containers
     bin/moodle-docker-compose start
