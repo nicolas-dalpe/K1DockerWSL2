@@ -94,6 +94,13 @@ build_instances() {
     info_message "${folder} site started - http://localhost:${MOODLE_DOCKER_WEB_PORT}"
 }
 
+# This function resets all config files used during boot of project.
+# Should be used when --destroy containers.
+reset_config_files() {
+    git checkout local.yml
+    git checkout assets/php/docker-php-ext-xdebug.ini
+}
+
 exists_in_list() {
     LIST=$1
     DELIMITER=$2
@@ -163,6 +170,7 @@ do
                 fi
                 docker stop $(docker ps -a -q)
                 docker rm $(docker ps -a -q)
+                reset_config_files
                 info_message "All containers shut down and removed."
                 exit 1
                 ;;
@@ -191,13 +199,11 @@ do
                 if ! docker ps | grep -q 'moodlehq'; then
                    info_message "No containers running. Nothing to stop."
                    exit 1
-               fi
-               docker stop $(docker ps -q)
-               git checkout local.yml
-               git checkout assets/php/docker-php-ext-xdebug.ini
-               info_message "All sites stopped."
-               exit 1
-               ;;
+                fi
+                docker stop $(docker ps -q)
+                info_message "All sites stopped."
+                exit 1
+                ;;
 
         esac
     else
