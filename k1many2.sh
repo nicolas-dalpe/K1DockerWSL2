@@ -149,24 +149,24 @@ do
         fi
         # Check for any swithes that don't need options.
         case $SWITCH in
-           "--build")
+            "--build")
                 if [ -n "$(docker ps -f "name=${var}-webserver-1" -f "status=running" -q )" ]; then
                     echo "The first site is already running!. It cannot be re-initialized."
-                    exit 1
+                exit 1
                 fi
                 # Do the basics to start the site.
                 export MOODLE_DOCKER_DB=mariadb
                 export COMPOSE_PROJECT_NAME=site1
                 cp local.yml_many local.yml
                 ;;
-           "--help")
-              help_messages
-              exit 1
-              ;;
+            "--help")
+                help_messages
+                exit 1
+                ;;
             "--destroy")
                 if ! docker ps | grep -q 'moodlehq'; then
-                   info_message "No containers running. Nothing to shutdown."
-                   exit 1
+                    info_message "No containers running. Nothing to shutdown."
+                    exit 1
                 fi
                 docker stop $(docker ps -a -q)
                 docker rm $(docker ps -a -q)
@@ -174,11 +174,11 @@ do
                 info_message "All containers shut down and removed."
                 exit 1
                 ;;
-             # Restart
+            # Restart
             "--restart")
                 if ! docker ps | grep -q 'moodlehq'; then
-                     info_message "No containers running. Nothing to reboot."
-                     exit 1
+                    info_message "No containers running. Nothing to reboot."
+                    exit 1
                 fi
                 docker restart $(docker ps -q)
                 info_message "All sites restarted."
@@ -187,8 +187,8 @@ do
             # Start
             "--start")
                 if [ -n "$(docker ps -f "name=site1-webserver-1" -f "status=running" -q )" ]; then
-                     info_message "Sites are already running."
-                     exit 1
+                    info_message "Sites are already running."
+                    exit 1
                 fi
                 docker start $(docker ps -a -q -f status=exited)
                 info_message "All sites started."
@@ -197,14 +197,13 @@ do
             # Stop
             "--stop")
                 if ! docker ps | grep -q 'moodlehq'; then
-                   info_message "No containers running. Nothing to stop."
-                   exit 1
+                    info_message "No containers running. Nothing to stop."
+                    exit 1
                 fi
                 docker stop $(docker ps -q)
                 info_message "All sites stopped."
                 exit 1
                 ;;
-
         esac
     else
         # Used to name the project according to the folder name
