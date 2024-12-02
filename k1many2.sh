@@ -94,6 +94,18 @@ build_instances() {
     info_message "${folder} site started - http://localhost:${MOODLE_DOCKER_WEB_PORT}"
 }
 
+run_cron() {
+    # Project name (folder that contains the Moodle files)
+    projectname=$1
+
+    # Full path of the Moodle folder.
+    folder=$2
+
+    export MOODLE_DOCKER_WWWROOT=${folder}
+
+    bin/moodle-docker-compose exec ${projectname}-webserver-1 php admin/cli/cron.php
+}
+
 # This function resets all config files used during boot of project.
 # Should be used when --destroy containers.
 reset_config_files() {
@@ -114,13 +126,6 @@ exists_in_list() {
     return 0
 }
 
-# Variables
-# MOODLE_DOCKER_DB          - database used by Moodle - default maria db
-# MOODLE_DOCKER_WWWROOT     - folder where the Moodle code is located;
-# MOODLE_DOCKER_PORT        - port (default 8000);
-# MOODLE_DOCKER_PHP_VERSION - php version used in Moodle - default 8.1;
-# COMPOSE_PROJECT_NAME      - Docker project name - used to identify sites;
-
 if [ $# -eq 0 ];  then
     error_message "No arguments supplied"
     help_messages
@@ -133,7 +138,17 @@ if [ $# -lt 1 ] || [ $# -gt 4 ] ;  then
     exit 1
 fi
 
-list_of_options="--build  --destroy --help --reboot --stop --start --restart"
+# Variables
+# MOODLE_DOCKER_DB          - database used by Moodle - default maria db
+# MOODLE_DOCKER_WWWROOT     - folder where the Moodle code is located;
+# MOODLE_DOCKER_PORT        - port (default 8000);
+# MOODLE_DOCKER_PHP_VERSION - php version used in Moodle - default 8.1;
+# COMPOSE_PROJECT_NAME      - Docker project name - used to identify sites;
+
+# MariaDB is always used so we can set it for all switches.
+export MOODLE_DOCKER_DB=mariadb
+
+list_of_options="--cron --build  --destroy --help --reboot --stop --start --restart"
 cwd=$( dirname "$PWD" )
 count=0
 for var in "$@"
@@ -149,13 +164,16 @@ do
         fi
         # Check for any swithes that don't need options.
         case $SWITCH in
+            "--cron")
+                folder="${cwd}/${var}"
+                run_cron ${var} ${folder}
+                ;;
             "--build")
                 if [ -n "$(docker ps -f "name=${var}-webserver-1" -f "status=running" -q )" ]; then
                     echo "The first site is already running!. It cannot be re-initialized."
                 exit 1
                 fi
                 # Do the basics to start the site.
-                export MOODLE_DOCKER_DB=mariadb
                 export COMPOSE_PROJECT_NAME=site1
                 cp local.yml_many local.yml
                 ;;
