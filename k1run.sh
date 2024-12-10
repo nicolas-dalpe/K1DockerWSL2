@@ -28,12 +28,23 @@ help_messages () {
     echo
     echo "--build    Start the site and initialize the site."
     echo "--build --phpunit|--behat Start the containers, install Moodle then initialize Behat or PHPUnit"
+    echo "--build --seed Start the container load seed data"
     echo "--down     Stop the site. Keep data"
     echo "--destroy  Stop the site, destory data"
     echo "--reboot   Restart the site - destroy all containers and re-initialize"
     echo "--load     Reload the site, use existing data"
     echo "--phpunit  Initialize for phpunit tests"
     echo "--behat    Initialize for behat tests"
+}
+
+# Decorator to output information message to the user.
+# Takes 1 param, then message to be displayed.
+info_message() {
+    CYAN='\033[0;36m'
+    NC='\033[0m' # No Color
+    echo
+    echo "${CYAN}$1${NC}"
+    echo
 }
 
 exists_in_list() {
@@ -86,7 +97,7 @@ if [ "$SWITCH" = "--help" ]; then
     exit 1
 fi
 
-list_of_options="--build --down --destroy --reboot --load --phpunit --behat"
+list_of_options="--build --down --destroy --reboot --load --phpunit --behat --seed"
 
 if  exists_in_list "$list_of_options" " " $SWITCH;  then
     error_message "Invalid option $SWITCH"
@@ -115,7 +126,6 @@ fi
 # Use the local.yml_single for one site - includes adminer.
 cp local.yml_single local.yml
 cp config.docker-template.php $MOODLE_DOCKER_WWWROOT/config.php
-
 # Build
 if [ "$SWITCH" = "--build" ]; then
     # Check to see if the docker containers are running.
@@ -128,17 +138,32 @@ if [ "$SWITCH" = "--build" ]; then
     bin/moodle-docker-compose up -d
     # Wait for DB to come up
     bin/moodle-docker-wait-for-db
-    # Initialize the database
-    bin/moodle-docker-compose exec webserver php admin/cli/install_database.php --agree-license --fullname="K1MOODLE" --shortname="K1MOODLE" --summary="K1 Moodle dev" --adminpass="test" --adminemail="admin@example.com"
+    # Seed the database if requested.
+    if [ "$SWITCH2" = "--seed" ]; then
+         if [ "$moodlever" ]; then
+            docker exec -i docker-db-1  mysql --user moodle  --password=m@0dl3ing moodle < m450.sql
+            info_message "Moodle 4.5 started and database loaded."
+         else
+            docker exec -i docker-db-1  mysql --user moodle  --password=m@0dl3ing moodle < m401.sql
+            info_message "Moodle 4.1 started and database loaded."
+         fi
+    else     
+         # Initialize the database
+         bin/moodle-docker-compose exec webserver php admin/cli/install_database.php --agree-license --fullname="K1MOODLE" --shortname="K1MOODLE" --summary="K1 Moodle dev" --adminpass="test" --adminemail="admin@example.com"
+         info_message "Database started."
+    fi
     if [ "$SWITCH2" = "--phpunit" ]; then
        # Add in unit tests initialization.
        bin/moodle-docker-compose exec webserver php admin/tool/phpunit/cli/init.php
+       info_message "Unit tests initialized"
     fi
     if [ "$SWITCH2" = "--behat" ]; then
        # Add in unit tests initialization.
        bin/moodle-docker-compose exec webserver php admin/tool/behat/init.php
+       info_message "Behat tests initialized"
     fi
     adminer_plugins
+    exit 1
 fi
 
 # DESTROY
@@ -148,6 +173,8 @@ if [ "$SWITCH" = "--destroy" ]; then
         exit 1
     fi
     bin/moodle-docker-compose down
+    info_message "All containers shut down and removed."
+    exit 1
 fi
 
 # PNPUNIT ONLY
@@ -161,6 +188,7 @@ if [ "$SWITCH" = "--phpunit" ]; then
         adminer_plugins
     fi
     bin/moodle-docker-compose exec webserver php admin/tool/phpunit/cli/init.php
+    info_message "Unit tests initialized."
 fi
 
 # BEHAT ONLY
@@ -174,6 +202,7 @@ if [ "$SWITCH" = "--behat" ]; then
         adminer_plugins
     fi
    bin/moodle-docker-compose exec webserver php admin/tool/behat/cli/init.php
+   info_message "Behat tests initialized"
 fi
 
 # REBOOT
@@ -188,6 +217,7 @@ if [ "$SWITCH" = "--reboot" ]; then
     # Re-start up containers
     bin/moodle-docker-compose start
     adminer_plugins
+    info_message "Site rebooted"
 fi
 
 # DOWN
@@ -199,6 +229,7 @@ if [ "$SWITCH" = "--down" ]; then
     fi
     # Stop the containers
     bin/moodle-docker-compose stop
+    info_message "Site stopped"
 fi
 
 # LOAD existing data.
@@ -206,6 +237,7 @@ if [ "$SWITCH" = "--load" ]; then
     # Start the containers
     bin/moodle-docker-compose start
     adminer_plugins
+    info_message "Site reloaded"
 fi
 
 exit 0
