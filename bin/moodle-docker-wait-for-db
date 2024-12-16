@@ -9,17 +9,8 @@ then
     echo 'Error: $MOODLE_DOCKER_DB is not set'
     exit 1
 fi
-
-if [ "$MOODLE_DOCKER_DB" = "mssql" ];
-then
-    $basedir/bin/moodle-docker-compose exec -T db /wait-for-mssql-to-come-up.sh
-elif [ "$MOODLE_DOCKER_DB" = "oracle" ];
-then
-    until $basedir/bin/moodle-docker-compose logs db | grep -q 'DATABASE IS READY TO USE!';
+until $basedir/bin/moodle-docker-compose logs db | grep -q 'ready for connections';
     do
-        echo 'Waiting for oracle to come up...'
+        echo 'Waiting for Mariadb to come up...'
         sleep 15
     done
-else
-    sleep 10
-fi
