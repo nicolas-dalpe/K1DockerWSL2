@@ -147,7 +147,8 @@ if [ "$SWITCH" = "--destroy" ]; then
         error_message "No containers running. Nothing to shutdown"
         exit 1
     fi
-    bin/moodle-docker-compose down
+    docker stop $(docker ps -a -q)
+    docker rm $(docker ps -a -q)
 fi
 
 # PNPUNIT ONLY
